@@ -3,6 +3,8 @@
   "compilerOptions": {
     // File Layout
     // "rootDir": "./src",
+    "allowImportingTsExtensions": true,
+    "emitDeclarationOnly": true,
     "outDir": "./dist",
 
     // Environment Settings
@@ -44,6 +46,6 @@
     "moduleDetection": "force",
     "skipLibCheck": true
   },
-  "include": ["*.ts"], // compile TS files in root
+  "include": ["**/*.ts"], // compile TS files in root
   "exclude": ["node_modules"]
 }
