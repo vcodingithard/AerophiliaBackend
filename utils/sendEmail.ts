@@ -14,10 +14,10 @@ export const sendEmail = async (reciverEmail: string, subject: string, emailBody
             from: `"Team Challengers" <${process.env.EMAIL_USER}>`,
             to: reciverEmail,
             subject: subject,
-            content: emailBody,
+            html: emailBody,
         }
 
-        const details = await transporter.sendEmail(mailDetails);
+        const details = await transporter.sendMail(mailDetails);
         return details;
     } catch (error) {
         console.log(`Error sending mail to ${reciverEmail} : ${error}`);
