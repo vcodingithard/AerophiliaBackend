@@ -92,3 +92,14 @@ export interface Request {
   requested_time: Date;
   request_url?: string;
 }
+
+export interface Registration {
+  registration_id: string;   
+  event_id: string;          
+  registrant_id: string;     
+  team_event: boolean,       
+  team_id: string | null;   
+  payment_id: string | null;
+  status: "completed" | "incomplete"; 
+  createdAt: Date;       
+}
