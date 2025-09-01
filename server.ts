@@ -24,3 +24,7 @@ app.get("/", (_req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running at port ${process.env.PORT}`);
 });
+
+
+import usersRouter from "./routes/user.ts";
+app.use("/users", usersRouter);
