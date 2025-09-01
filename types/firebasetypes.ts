@@ -1,16 +1,22 @@
 
 
-export enum PaymentStatus{
-    PENDING ="pending",
-    COMPLETED = "completed",
-    FAILED = "failed"
-}
 
-export enum RequestStatus{
-    PENDING="pending",
-    ACCEPTED="accepted",
-    DECLINED="declined"
-}
+export const PaymentStatus = {
+  PENDING: "pending",
+  COMPLETED: "completed",
+  FAILED: "failed",
+} as const;
+
+export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
+
+
+export const RequestStatus = {
+  PENDING: "pending",
+  ACCEPTED: "accepted",
+  DECLINED: "declined",
+} as const;
+
+export type RequestStatus = typeof RequestStatus[keyof typeof RequestStatus];
 
 export interface User{
     id:string;
