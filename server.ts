@@ -26,5 +26,14 @@ app.listen(PORT, () => {
 });
 
 
+
 import usersRouter from "./routes/user.ts";
 app.use("/users", usersRouter);
+
+import teamRoutes from "./routes/teams.ts";
+app.use("/api/teams", teamRoutes);
+
+import eventRoutes from "./routes/getEvent.ts";
+app.use(eventRoutes);
+
+export default app;
