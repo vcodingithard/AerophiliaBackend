@@ -2,6 +2,9 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
+import userRoutes from "./routes/user.ts";
+import requestRouter from "./routes/requests.ts";
+import registrationRouter from "./routes/registrations.ts";
 
 dotenv.config();
 
@@ -16,6 +19,12 @@ app.use(bodyParser.json());
 
 app.use(express.urlencoded({ extended: true }));
 
+// API Routes
+app.use("/api/user", userRoutes);
+app.use("/users", userRoutes);
+app.use("/requests", requestRouter);
+app.use("/registration", registrationRouter);
+
 app.get("/", (_req, res) => {
   res.send("Hello from TypeScript + Node.js ");
 });
@@ -23,12 +32,3 @@ app.get("/", (_req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running at port ${process.env.PORT}`);
 });
-
-import usersRouter from "./routes/user.ts";
-app.use("/users", usersRouter);
-
-import registrationRouter from "./routes/registrations.ts";
-app.use("/registration", registrationRouter);
-
-import requestRouter  from "./routes/requests.ts";
-app.use("/requests", requestRouter);
