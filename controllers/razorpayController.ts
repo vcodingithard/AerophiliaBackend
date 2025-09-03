@@ -78,37 +78,46 @@ export const verifyPayment = asyncHandler(
       status: "completed",
       payment_id: razorpay_order_id,
     });
-
     // ------------------------
     // Send payment confirmation email asynchronously
     // ------------------------
     (async () => {
       try {
-        // Fetch user and event details for email
         const regSnap = await db.collection("registrations").doc(registration_id).get();
         const regData = regSnap.data();
-        const userSnap = await db.collection("users").doc(regData?.registrant_id).get();
-        const userData = userSnap.data();
         const eventSnap = await db.collection("events").doc(event_id).get();
         const eventData = eventSnap.data();
 
-        if (userData && eventData) {
+        if (regData && eventData) {
           const paymentDetails = {
             transactionId: razorpay_payment_id,
-            amount: regData?.amount || 0,
+            amount: regData.amount || 0,
             date: new Date().toLocaleString(),
           };
-          await sendPaymentConfirmationEmail(
-            userData.email,
-            userData.fullName,
-            eventData.Title || "Event",
-            paymentDetails
-          );
+
+          // Use participants array if available, otherwise fallback to registrant_id
+          const participantIds: string[] = regData.participants?.length
+            ? regData.participants
+            : [regData.registrant_id];
+
+          for (const uid of participantIds) {
+            const userSnap = await db.collection("users").doc(uid).get();
+            const userData = userSnap.data();
+            if (userData?.email) {
+              await sendPaymentConfirmationEmail(
+                userData.email,
+                userData.fullName,
+                eventData.Title || "Event",
+                paymentDetails
+              );
+            }
+          }
         }
       } catch (err) {
         console.error("Failed to send payment confirmation email:", err);
       }
     })();
+
 
     res
       .status(200)
