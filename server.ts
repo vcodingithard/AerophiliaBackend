@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
 import razorpayRoutes from "./routes/razorpayRoutes.ts";
-import userRoutes from "./routes/user.ts"
+import eventRoutes from "./routes/events.ts"
 dotenv.config();
 
 const app = express();
@@ -18,7 +18,7 @@ app.use(bodyParser.json())
 app.use(express.urlencoded({extended : true}));
 
 app.use("/api/razorpay", razorpayRoutes);
-app.use("/api/user", userRoutes);
+app.use("/api/user", eventRoutes);
 app.get("/", (_req, res) => {
   res.send("Hello from TypeScript + Node.js ");
 });
