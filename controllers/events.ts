@@ -12,6 +12,18 @@ interface AuthRequest extends Request {
   user_id?: string;
 }
 
+// Helper to fetch event details
+async function getEventDetails(eventId: string) {
+  const eventSnap = await db.collection("events").doc(eventId).get();
+  if (!eventSnap.exists) throw new Error("Event not found");
+  const eventData = eventSnap.data();
+  return {
+    name: eventData?.Title ?? "Event",
+    date: eventData?.DateTime?.toDate?.() ?? new Date(),
+    location: eventData?.Location ?? "N/A",
+  };
+}
+
 // ------------------------
 // 1️⃣ Individual Event Registration
 // ------------------------
@@ -21,34 +33,20 @@ export const registerIndividualEvent = asyncHandler(async (req: AuthRequest, res
   const { eventId } = req.params;
   if (!eventId) return res.status(400).json({ message: "Missing event ID" });
 
-  const { fullName, email, college, age, year_of_study } = req.body as {
-    fullName: string;
-    email: string;
-    college?: string;
-    age?: number;
-    year_of_study?: number;
-  };
+  const { fullName, email, college, age, year_of_study } = req.body;
 
-  if (!fullName || !email) return res.status(400).json({ message: "Full name and email required" });
+  if (!fullName || !email) {
+    return res.status(400).json({ message: "Full name and email required" });
+  }
 
-  // Fetch event
-  const eventSnap = await db.collection("events").doc(eventId).get();
-  if (!eventSnap.exists) return res.status(404).json({ message: "Event not found" });
-
-  const eventData = eventSnap.data();
-  const eventDetails = {
-    name: eventData?.Title ?? "Event",
-    date: eventData?.DateTime?.toDate ? eventData.DateTime.toDate() : new Date(),
-    location: eventData?.Location ?? "N/A",
-  };
-
-  const registrationRef = db.collection("registrations").doc();
+  const eventDetails = await getEventDetails(eventId);
+  const registrationId = uuidv4();
+  const registrationRef = db.collection("registrations").doc(registrationId);
   const userRef = db.collection("users").doc(user_id);
 
-  // Transaction ensures consistency
   await db.runTransaction(async (tx) => {
     tx.set(registrationRef, {
-      registration_id: registrationRef.id,
+      registration_id: registrationId,
       event_id: eventId,
       registrant_id: user_id,
       team_event: false,
@@ -70,13 +68,12 @@ export const registerIndividualEvent = asyncHandler(async (req: AuthRequest, res
     });
   });
 
-  // Fire email (non-blocking)
   sendEventRegistrationEmail(email, fullName, eventDetails).catch(console.error);
 
   res.status(201).json({
     success: true,
     message: "Registration successful",
-    registration_id: registrationRef.id,
+    registration_id: registrationId,
     event: eventDetails,
   });
 });
@@ -90,47 +87,34 @@ export const createTeamAndRegister = asyncHandler(async (req: AuthRequest, res: 
   const { eventId } = req.params;
   if (!eventId) return res.status(400).json({ message: "Missing event ID" });
 
-  const { team_name, college_name, member_ids } = req.body as {
-    team_name: string;
-    college_name: string;
-    member_ids: string[];
-  };
-
+  const { team_name, college_name, member_ids } = req.body;
   if (!team_name || !college_name || !member_ids?.length) {
     return res.status(400).json({ message: "Missing required fields or members" });
   }
 
-  // Create team doc
   const teamId = `team_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
   await db.collection("teams").doc(teamId).set({
     team_id: teamId,
     team_name,
     team_leader: creator_id,
-    member_ids,
+    member_ids: [creator_id],
     college_name,
-    member_count: member_ids.length + 1,
-    payment_ids: [] as string[],
+    member_count: 1,
+    payment_ids: [],
     events_ids: [eventId],
     createdAt: firestore.FieldValue.serverTimestamp(),
   });
 
-  // Fetch leader + event in parallel
-  const [leaderSnap, eventSnap] = await Promise.all([
+  const [leaderSnap, eventDetails] = await Promise.all([
     db.collection("users").doc(creator_id).get(),
-    db.collection("events").doc(eventId).get(),
+    getEventDetails(eventId),
   ]);
+
   const leaderData = leaderSnap.data();
   if (!leaderData) return res.status(404).json({ message: "Team leader not found" });
 
-  const eventDetails = {
-    name: eventSnap.data()?.Title ?? "Event",
-    date: eventSnap.data()?.DateTime?.toDate() ?? new Date(),
-    location: eventSnap.data()?.Location ?? "N/A",
-  };
-
-  // Send requests to members in parallel
   await Promise.all(
-    member_ids.map(async (memberId) => {
+    member_ids.map(async (memberId: string) => {
       const memberSnap = await db.collection("users").doc(memberId).get();
       const memberData = memberSnap.data();
       if (!memberData) return;
@@ -148,28 +132,31 @@ export const createTeamAndRegister = asyncHandler(async (req: AuthRequest, res: 
         message_body: `${leaderData.fullName} invited you to join the team "${team_name}"`,
         status: RequestStatus.PENDING,
         requested_time: firestore.FieldValue.serverTimestamp(),
-        request_url: `/accept-invite/${requestId}`,
+        team_id: teamId,
+        event_id: eventId,
       });
 
-      sendTeamRequestEmail(memberData.email, memberData.fullName, leaderData.fullName, team_name, eventId)
+      sendTeamRequestEmail(memberData.email, memberData.fullName, leaderData.fullName, team_name, eventDetails.name, requestId)
         .catch(console.error);
     })
   );
 
   res.status(201).json({
     success: true,
-    message: "Team created and requests sent. Members must accept before registration.",
+    message: "Team created and invitations sent.",
     team_id: teamId,
     event: eventDetails,
   });
 });
 
 // ------------------------
-// 3️⃣ Respond to Team Request (Accept / Decline)
+// 3️⃣ Respond to Team Request (Accept / Decline) + Cleanup
 // ------------------------
 export const respondToTeamRequest = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { requestId } = req.params as { requestId: string };
-  const { status } = req.body as { status: "ACCEPTED" | "DECLINED" };
+  if (!req.user_id) return res.status(401).json({ message: "Unauthorized" });
+  const user_id = req.user_id;
+  const { requestId } = req.params;
+  const { status } = req.body;
 
   if (!requestId || !status) return res.status(400).json({ message: "Request ID and status required" });
   if (!["ACCEPTED", "DECLINED"].includes(status)) {
@@ -180,11 +167,83 @@ export const respondToTeamRequest = asyncHandler(async (req: AuthRequest, res: R
   const requestSnap = await requestRef.get();
   if (!requestSnap.exists) return res.status(404).json({ message: "Request not found" });
 
+  const requestData = requestSnap.data()!;
+  if (requestData.status !== RequestStatus.PENDING) {
+    return res.status(400).json({ message: "Request already responded to" });
+  }
+
   await requestRef.update({
     status,
     responded_time: firestore.FieldValue.serverTimestamp(),
   });
 
-  const updatedSnap = await requestRef.get();
-  res.status(200).json({ success: true, request: updatedSnap.data() });
+  // --------------------
+  // Case 1: ACCEPTED
+  // --------------------
+  if (status === "ACCEPTED") {
+    const teamRef = db.collection("teams").doc(requestData.team_id);
+    const userRef = db.collection("users").doc(user_id);
+    const registrationId = uuidv4();
+    const registrationRef = db.collection("registrations").doc(registrationId);
+
+    await db.runTransaction(async (tx) => {
+      tx.update(teamRef, {
+        member_ids: firestore.FieldValue.arrayUnion(user_id),
+        member_count: firestore.FieldValue.increment(1),
+      });
+
+      tx.update(userRef, {
+        team_id: requestData.team_id,
+        events_registered: firestore.FieldValue.arrayUnion(requestData.event_id),
+        updatedAt: firestore.FieldValue.serverTimestamp(),
+      });
+
+      tx.set(registrationRef, {
+        registration_id: registrationId,
+        event_id: requestData.event_id,
+        registrant_id: user_id,
+        team_event: true,
+        team_id: requestData.team_id,
+        payment_id: null,
+        status: "incomplete",
+        createdAt: firestore.FieldValue.serverTimestamp(),
+      });
+    });
+  }
+
+  // --------------------
+  // Case 2: DECLINED → Check cleanup
+  // --------------------
+  if (status === "DECLINED") {
+    const teamRef = db.collection("teams").doc(requestData.team_id);
+    const teamSnap = await teamRef.get();
+    if (teamSnap.exists) {
+      const teamData = teamSnap.data()!;
+
+      // Fetch all requests for this team
+      const requestsSnap = await db.collection("requests")
+        .where("team_id", "==", requestData.team_id)
+        .get();
+
+      const requests = requestsSnap.docs.map((doc) => doc.data());
+      const anyAccepted = requests.some((r) => r.status === RequestStatus.ACCEPTED);
+      const anyPending = requests.some((r) => r.status === RequestStatus.PENDING);
+
+      // If no accepted and no pending → everyone declined
+      if (!anyAccepted && !anyPending && teamData.member_ids.length === 1) {
+        const leaderId = teamData.team_leader;
+
+        // Transaction → delete team + reset leader’s team_id
+        await db.runTransaction(async (tx) => {
+          tx.delete(teamRef);
+          tx.update(db.collection("users").doc(leaderId), {
+            team_id: firestore.FieldValue.delete(),
+            updatedAt: firestore.FieldValue.serverTimestamp(),
+          });
+        });
+      }
+    }
+  }
+
+  res.status(200).json({ success: true, message: `Request ${status.toLowerCase()}` });
 });
