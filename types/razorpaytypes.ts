@@ -16,7 +16,7 @@ export interface RazorpayOrderOptions {
 }
 
 
-/* Razorpay Order Output or Response */
+/* Razorpay Order Output or Response */ 
 export interface RazorpayOrderResponse {
   id: string;
   entity: string;

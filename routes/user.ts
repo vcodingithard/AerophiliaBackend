@@ -20,7 +20,7 @@ router.get("/me", userLogin, async (req: Request, res: Response) => {
       return res.status(404).json({ error: "User profile not found" });
     }
 
-    return res.json({ id: userDoc.id, ...userDoc.data() }); 
+    return res.json({ id: userDoc.id, ...userDoc.data() });
   } catch (error) {
     console.error("Error fetching user profile:", error);
     return res.status(500).json({ error: "Internal server error" });

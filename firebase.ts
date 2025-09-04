@@ -1,10 +1,9 @@
-import admin from "firebase-admin";
+
 import { initializeApp, cert } from "firebase-admin/app";
 import type { ServiceAccount } from "firebase-admin";
 import { getAuth } from "firebase-admin/auth";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import serviceAccountJson from "./aerophilia-backend-firebase.json" with { type: "json" };
-
 
 const serviceAccount = serviceAccountJson as ServiceAccount;
 
@@ -14,5 +13,5 @@ initializeApp({
 });
 
 export const auth = getAuth();
-
 export const db = getFirestore();
+export const firestore = { FieldValue }; 
