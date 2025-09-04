@@ -1,3 +1,4 @@
+# Logs
 logs
 *.log
 npm-debug.log*
@@ -5,20 +6,75 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-.env
-*.json
 
-node_modules
-dist
-dist-ssr
+# Environment variables (CRITICAL!)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*
+
+# Node.js dependencies
+node_modules/
+
+# Firebase service account keys (NEVER commit these!)
+firebase-service-account.json
+serviceAccountKey.json
+*service-account*.json
+firebase-adminsdk*.json
+aerophilia-backend-firebase.json
+
+# Build outputs
+dist/
+build/
+dist-ssr/
 *.local
 
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# IDE files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
+*.swp
+*.swo
+
+# OS generated files
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary folders
+tmp/
+temp/
+
+# Package manager lock files (optional - include if you want)
+# package-lock.json
+# yarn.lock
+
+# Database files
+*.sqlite
+*.db
+
+# Sensitive configuration files
+config/production.json
+config/staging.json
