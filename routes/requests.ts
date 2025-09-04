@@ -34,6 +34,44 @@ requestRouter.get("/", userLogin, async (req: Request, res: Response) => {
   }
 });
 
+// GET /requests/received - Fetch all requests where 'to' matches logged-in user's email
+requestRouter.get("/received", userLogin, async (req: Request, res: Response) => {
+  try {
+    const email = req.user?.email;
+    if (!email) return res.status(401).json({ error: "Unauthorized" });
+
+    const receivedSnap = await db.collection("requests").where("to", "==", email).get();
+    const received: any[] = [];
+    receivedSnap.forEach((doc) => {
+      received.push({ id: doc.id, ...doc.data() });
+    });
+
+    return res.json({ received });
+  } catch (error) {
+    console.error("Error fetching received requests:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /requests/sent - Fetch all requests sent by a leader (from field)
+requestRouter.get("/sent", userLogin, async (req: Request, res: Response) => {
+  try {
+    const uid = req.user?.uid;
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
+    const sentSnap = await db.collection("requests").where("from", "==", uid).get();
+    const sent: any[] = [];
+    sentSnap.forEach((doc) => {
+      sent.push({ id: doc.id, ...doc.data() });
+    });
+
+    return res.json({ sent });
+  } catch (error) {
+    console.error("Error fetching sent requests:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // PATCH /requests/:id/accept → Accept team request
 requestRouter.patch("/:id/accept", userLogin, async (req: Request, res: Response) => {
   try {
