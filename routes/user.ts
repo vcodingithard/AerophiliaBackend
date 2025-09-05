@@ -2,6 +2,8 @@ import { Router, type Request, type Response } from "express";
 import { db } from "../firebase.ts";
 import { userLogin } from "../middlewares/firebaseVerifyToken.ts";
 import { FieldValue } from "firebase-admin/firestore";
+import asyncHandler from "../utils/asyncHandler.ts";
+import { handleInitialUserSignUp } from "../controllers/user.ts";
 
 const router = Router();
 
@@ -60,5 +62,8 @@ router.patch("/me", userLogin, async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 });
+
+// Post : /users/initial-signup : Handle Initial User Signup
+router.post("/initial-signup",handleInitialUserSignUp);
 
 export default router;

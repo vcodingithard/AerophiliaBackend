@@ -199,3 +199,35 @@ export const getIncompleteRegistrations = asyncHandler(async (req: Request, res:
     total: incompleteEventsData.length
   });
 });
+
+
+export const handleInitialUserSignUp = asyncHandler(async(req : Request , res : Response) =>{
+    const userId = req.user?.uid;
+    const userEmail = req.user?.email || null;
+
+    if(!userId)
+        throw new ExpressError(400,"User Id is required !")
+
+    const userRef = db.collection("users").doc(userId);
+    const user = await userRef.get();
+
+    if(!user.exists){
+      const userData = {
+        userEmail
+      };
+
+      await userRef.set(userData);
+
+      return res.status(201).json({
+        success : true,
+        message : "User Created successfully !",
+        data :  {id : userId, ...userData}
+      })
+    }
+
+    return res.status(200).json({
+      success : true,
+      message : "User Already exists! Fill all other details .",
+      data : {id : userId , ...user.data()}
+    });
+});
