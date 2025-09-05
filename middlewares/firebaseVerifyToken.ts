@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
-import { auth, db } from "../firebase.ts"; 
+import { auth, db } from "../firebase.ts";
 import type { DecodedIdToken } from "firebase-admin/auth";
+import ExpressError from "../utils/expressError.ts";
 
 declare module "express-serve-static-core" {
   interface Request {
@@ -8,12 +9,16 @@ declare module "express-serve-static-core" {
   }
 }
 
-export const userLogin = async (req: Request, res: Response, next: NextFunction) => {
+export const userLogin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const headers = req.headers.authorization;
   const token = headers?.startsWith("Bearer ") ? headers.split(" ")[1] : null;
 
   if (!token) {
-    return res.status(401).json({ error: "Unauthorized: No token provided" });
+    throw new ExpressError(401, "No token provided. Please log in.");
   }
 
   try {
@@ -26,19 +31,11 @@ export const userLogin = async (req: Request, res: Response, next: NextFunction)
 
     if (!userDoc.exists) {
       // create new user
-      await userRef.set({
-        userId: decodedToken.uid,
-        email: decodedToken.email || "",
-        name: decodedToken.name || "",
-        registrations: [],
-        createdAt: new Date(),
-      });
-      console.log(`✅ New user ${decodedToken.uid} created in Firestore`);
+      throw new ExpressError(404, "User profile not found. Please register.");
     }
 
     next();
-  } catch (error: unknown) {
-    console.error("❌ Firebase Token verification failed:", error);
-    return res.status(403).json({ error: "Invalid or expired token. Please log in again." });
+  } catch (error) {
+    throw new ExpressError(401, "Invalid or expired token.");
   }
 };
