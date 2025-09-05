@@ -1,46 +1,60 @@
-import { body, param, validationResult } from 'express-validator';
-import type{ Request, Response, NextFunction } from 'express';
+// Validation using Zod removed express logic
 
+import type { Request, Response, NextFunction } from "express";
+import { z, type ZodSchema, type ZodIssue } from "zod";
 
-const handleValidationErrors = (req: Request, res: Response, next: NextFunction) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-  next();
-};
+export const validate =
+  <T extends ZodSchema>(schema: T, location: "body" | "params" = "body") =>
+  (req: Request, res: Response, next: NextFunction) => {
+    const data = location === "body" ? req.body : req.params;
+    const result = schema.safeParse(data);
 
-// Validation rules for the "Create Team Registration" endpoint
+    if (!result.success) {
+      const errors = result.error.issues.map((e: ZodIssue) => ({
+        path: e.path?.join?.(".") ?? "",
+        message: e.message,
+      }));
+      return res.status(400).json({ errors });
+    }
+
+    if (location === "body") {
+      req.body = result.data as any;
+    } else {
+      req.params = result.data as any;
+    }
+
+    next();
+  };
+
+export const teamCreationBodySchema = z.object({
+  teamName: z
+    .string()
+    .trim()
+    .min(1, "Team name is required")
+    .min(3, "Team name must be between 3 and 50 characters.")
+    .max(50, "Team name must be between 3 and 50 characters."),
+  members: z
+    .array(z.string().email("Each member must be a valid email."))
+    .min(1, "Members must be an array with at least one email."),
+});
+
+export const eventIdParamSchema = z.object({
+  eventId: z.string().trim().min(1, "Event ID is required."),
+});
+
+export const requestIdParamSchema = z.object({
+  id: z.string().trim().min(1, "Request ID is required."),
+});
+
 export const validateTeamCreation = [
-  param('eventId')
-    .isString().withMessage('Event ID must be a string.')
-    .trim()
-    .notEmpty().withMessage('Event ID cannot be empty.'),
-  body('teamName')
-    .isString().withMessage('Team name must be a string.')
-    .trim()
-    .isLength({ min: 3, max: 50 }).withMessage('Team name must be between 3 and 50 characters.'),
-  body('members')
-    .isArray({ min: 1 }).withMessage('Members must be an array with at least one email.'),
-  body('members.*')
-    .isEmail().withMessage('Each member must be a valid email address.'),
-  handleValidationErrors,
+  validate(eventIdParamSchema, "params"),
+  validate(teamCreationBodySchema, "body"),
 ];
 
-// Validation rules for routes that accept or reject a request
-export const validateRequestAction = [
-  param('id')
-    .isString().withMessage('Request ID must be a string.')
-    .trim()
-    .notEmpty().withMessage('Request ID is required.'),
-  handleValidationErrors,
-];
+export const validateRequestAction = [validate(requestIdParamSchema, "params")];
 
-// Generic validation for any route requiring an eventId in the URL parameters
-export const validateEventIdParam = [
-  param('eventId')
-    .isString().withMessage('Event ID must be a string.')
-    .trim()
-    .notEmpty().withMessage('Event ID is required.'),
-  handleValidationErrors,
-];
+export const validateEventIdParam = [validate(eventIdParamSchema, "params")];
+
+export type TeamCreationBody = z.infer<typeof teamCreationBodySchema>;
+export type EventIdParams = z.infer<typeof eventIdParamSchema>;
+export type RequestIdParams = z.infer<typeof requestIdParamSchema>;
