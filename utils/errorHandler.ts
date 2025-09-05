@@ -1,5 +1,5 @@
-import {Request , Response , NextFunction} from "express"
-import ExpressError from "./expressError";
+import type {Request , Response , NextFunction} from "express"
+import ExpressError from "./expressError.ts";
 
 
 const errorHandler = (err : ExpressError ,req : Request ,res : Response ,next : NextFunction) =>{
