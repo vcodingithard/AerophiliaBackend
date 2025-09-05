@@ -4,6 +4,7 @@ import {
   registerIndividualEvent,
   createTeamAndRegister,
   respondToTeamRequest,
+  addEvent
 } from "../controllers/events.ts";
 import {
   getCompletedRegistrations,
@@ -21,6 +22,9 @@ router.post("/team/:eventId", userLogin, createTeamAndRegister);
 
 // Respond to team request
 router.post("/team/request/:requestId/respond", userLogin, respondToTeamRequest);
+
+// Post /create-events
+router.post("/create-events",addEvent);
 
 // GET /registrations/completed - Fetch completed registrations from user's registrations field
 router.get("/registrations/completed", userLogin, getCompletedRegistrations);

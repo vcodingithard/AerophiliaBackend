@@ -6,10 +6,24 @@ import { sendEventRegistrationEmail } from "../utils/sendEmails/eventRegistratio
 import { sendTeamRequestEmail } from "../utils/sendEmails/teamRequest.ts";
 import { RequestStatus } from "../types/firebasetypes.ts";
 import { v4 as uuidv4 } from "uuid";
+import ExpressError from "../utils/expressError.ts";
 
 // Extend Express Request to include user_id
 interface AuthRequest extends Request {
   user_id?: string;
+}
+
+interface EventSchema {
+  event_id: string;
+  Title: string;
+  description: string;
+  DateTime: Date;
+  Location: string;
+  Volunteer_Name: string[];
+  volunteer_phone_no: string[];
+  Payment_Amount: number;
+  participant_count: number;
+  createdAt?: Date;
 }
 
 // Helper to fetch event details
@@ -246,4 +260,23 @@ export const respondToTeamRequest = asyncHandler(async (req: AuthRequest, res: R
   }
 
   res.status(200).json({ success: true, message: `Request ${status.toLowerCase()}` });
+});
+
+
+export const addEvent = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const data = req.body as EventSchema;
+
+    if (!data.event_id)
+      return res.status(400).json({ error: "event_id is required" });
+
+    data.createdAt = data.createdAt || new Date();
+
+    await db.collection('events').doc(data.event_id).set(data);
+    return res.status(201).json({ message: "Event added", event: data });
+
+  } catch (error) {
+      console.error("Error adding event:", error);
+      throw new ExpressError(500,"Error creating Events !")
+  }
 });
