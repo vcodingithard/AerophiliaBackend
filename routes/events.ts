@@ -11,8 +11,13 @@ import {
   getIncompleteRegistrations,
 } from "../controllers/user.ts";
 import { userLogin } from "../middlewares/userLogin.ts";
+import { getAllEvents } from "../controllers/Allevent/getAllEvents.ts";
+import { getEventById } from "../controllers/Allevent/getEventId.ts";
 
 const router = Router();
+
+router.get("/", getAllEvents);
+router.get("/:id", getEventById);
 
 // Individual event registration
 router.post("/individual/:eventId", userLogin, registerIndividualEvent);
@@ -21,7 +26,11 @@ router.post("/individual/:eventId", userLogin, registerIndividualEvent);
 router.post("/team/:eventId", userLogin, createTeamAndRegister);
 
 // Respond to team request
-router.post("/team/request/:requestId/respond", userLogin, respondToTeamRequest);
+router.post(
+  "/team/request/:requestId/respond",
+  userLogin,
+  respondToTeamRequest
+);
 
 // Post /create-events
 router.post("/create-events",addEvent);
