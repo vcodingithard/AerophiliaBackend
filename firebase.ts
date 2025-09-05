@@ -3,7 +3,7 @@ import { initializeApp, cert } from "firebase-admin/app";
 import type { ServiceAccount } from "firebase-admin";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
-import serviceAccountJson from "./aerophilia-backend-firebase.json" with { type: "json" };
+import serviceAccountJson from "./aerophilia-dev-firebase-adminsdk-fbsvc-1d68ec927a.json" with { type: "json" };
 
 
 const serviceAccount = serviceAccountJson as ServiceAccount;
