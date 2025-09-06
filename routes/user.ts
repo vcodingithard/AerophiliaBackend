@@ -4,6 +4,8 @@ import { userLogin } from "../middlewares/firebaseVerifyToken.ts";
 import { FieldValue } from "firebase-admin/firestore";
 import asyncHandler from "../utils/asyncHandler.ts";
 import { handleInitialUserSignUp } from "../controllers/user.ts";
+import { checkEventExists } from "../utils/checkEventIdValid.ts";
+import ExpressError from "../utils/expressError.ts";
 
 const router = Router();
 
@@ -38,6 +40,20 @@ router.patch("/me", userLogin, async (req: Request, res: Response) => {
     }
 
     const { name, phone, addRegistration } = req.body;
+
+    if(!name || !phone || !addRegistration)
+      throw new ExpressError(400,"Missing required fields: name, phone, addRegistration")
+
+    if(phone.length !== 10)
+      throw new ExpressError(400,"Phone Number must be 10 Digits long")
+
+    if(!/^[A-Za-z\s]+$/.test(name))
+      throw new ExpressError(400,"Name should consist of only letters and spaces only !")
+
+    if(!checkEventExists(addRegistration)){
+      throw new ExpressError(500,"Please Provide a valid EventId. The event does not exist with the given EventId !")
+    }
+
 
     if (req.body.userId || req.body.email || req.body.createdAt) {
       return res.status(400).json({ error: "Cannot modify protected fields" });
