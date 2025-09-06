@@ -13,8 +13,8 @@ requestRouter.get("/", userLogin, async (req: Request, res: Response) => {
     if (!uid || !email) return res.status(401).json({ error: "Unauthorized" });
 
     const [receivedSnap, sentSnap] = await Promise.all([
-      db.collection("requests").where("to", "==", email).get(),
-      db.collection("requests").where("from", "==", uid).get(),
+      db.collection("requests").where("receiver_email", "==", email).get(),
+      db.collection("requests").where("sender_id", "==", uid).get(),
     ]);
 
     const received: any[] = [];
@@ -40,7 +40,7 @@ requestRouter.get("/received", userLogin, async (req: Request, res: Response) =>
     const email = req.user?.email;
     if (!email) return res.status(401).json({ error: "Unauthorized" });
 
-    const receivedSnap = await db.collection("requests").where("to", "==", email).get();
+    const receivedSnap = await db.collection("requests").where("receiver_email", "==", email).get();
     const received: any[] = [];
     receivedSnap.forEach((doc) => {
       received.push({ id: doc.id, ...doc.data() });
@@ -59,7 +59,7 @@ requestRouter.get("/sent", userLogin, async (req: Request, res: Response) => {
     const uid = req.user?.uid;
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
 
-    const sentSnap = await db.collection("requests").where("from", "==", uid).get();
+    const sentSnap = await db.collection("requests").where("sender_id", "==", uid).get();
     const sent: any[] = [];
     sentSnap.forEach((doc) => {
       sent.push({ id: doc.id, ...doc.data() });
@@ -97,7 +97,7 @@ requestRouter.patch("/:id/accept", userLogin, async (req: Request, res: Response
     const requestData = requestDoc.data();
     
     // Verify that this user is the recipient of the request
-    if (requestData?.to !== userEmail) {
+    if (requestData?.receiver_email !== userEmail) {
       return res.status(403).json({ error: "You are not authorized to accept this request" });
     }
 
@@ -233,7 +233,7 @@ requestRouter.patch("/:id/reject", userLogin, async (req: Request, res: Response
     const requestData = requestDoc.data();
     
     // Verify that this user is the recipient of the request
-    if (requestData?.to !== userEmail) {
+    if (requestData?.receiver_email !== userEmail) {
       return res.status(403).json({ error: "You are not authorized to reject this request" });
     }
 
