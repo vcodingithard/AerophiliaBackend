@@ -42,7 +42,7 @@ export interface Profile {
   college_name: string;
   events_registered: string[]; // Array of event IDs (string)
   DOB: Date;// idk why you gave long..so i assined it as Date
-  Bio?: string[];
+  Bio?: string;
   Social_Links?: string[];
 }
 
