@@ -4,38 +4,39 @@ import asyncHandler from "../utils/asyncHandler.ts";
 import ExpressError from "../utils/expressError.ts";
 import { FieldValue } from "firebase-admin/firestore";
 
-/**
- * Handle Initial User Signup
- */
-export const handleInitialUserSignUp = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user?.uid;
-  const userEmail = req.user?.email || null;
 
-  if (!userId) {
-    throw new ExpressError(400, "User Id is required!");
-  }
+export const handleInitialUserSignUp = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user?.uid;
+    const userEmail = req.user?.email || null;
 
-  const userRef = db.collection("users").doc(userId);
-  const user = await userRef.get();
+    if (!userId) {
+      throw new ExpressError(400, "User ID is required!");
+    }
 
-  if (!user.exists) {
-    const userData = { userEmail };
+    const userRef = db.collection("users").doc(userId);
+    const userDoc = await userRef.get();
 
-    await userRef.set(userData);
+    if (!userDoc.exists) {
+      const userData = { email: userEmail };
 
-    return res.status(201).json({
+      await userRef.set(userData);
+
+      return res.status(201).json({
+        success: true,
+        message: "User created successfully!",
+        data: { id: userId, ...userData },
+      });
+    }
+
+    return res.status(200).json({
       success: true,
-      message: "User Created successfully!",
-      data: { id: userId, ...userData },
+      message: "User already exists.",
+      data: { id: userId, ...userDoc.data() },
     });
   }
+);
 
-  return res.status(200).json({
-    success: true,
-    message: "User Already exists! Fill all other details.",
-    data: { id: userId, ...user.data() },
-  });
-});
 
 /**
  * GET /users/me
@@ -93,7 +94,7 @@ export const completeProfile = asyncHandler(async (req: Request, res: Response) 
     college_name,
     events_registered = [],
     DOB,
-    Bio = [],
+    Bio,
     Social_Links = [],
   } = req.body;
 
