@@ -20,7 +20,7 @@ router.patch("/me", userLogin, updateMe);
 router.post("/complete", userLogin, completeProfile);
 router.get("/profile", userLogin, getProfile);
 
-router.post("/initial-signup", userLogin, handleInitialUserSignUp);
+router.post("/initial-signup",userLogin, handleInitialUserSignUp);
 
 // Registration routes
 router.get("/registrations/completed", userLogin, getCompletedRegistrations);
