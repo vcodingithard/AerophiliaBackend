@@ -7,6 +7,7 @@ import { sendTeamRequestEmail } from "../utils/sendEmails/teamRequest.ts";
 import { RequestStatus } from "../types/firebasetypes.ts";
 import { v4 as uuidv4 } from "uuid";
 import ExpressError from "../utils/expressError.ts";
+import { checkEventExists } from "../utils/checkEventIdValid.ts";
 
 // Extend Express Request to include user_id
 interface AuthRequest extends Request {
@@ -45,18 +46,28 @@ export const registerIndividualEvent = asyncHandler(async (req: AuthRequest, res
   if (!req.user_id) return res.status(401).json({ message: "Unauthorized" });
   const user_id = req.user_id;
   const { eventId } = req.params;
-  if (!eventId) return res.status(400).json({ message: "Missing event ID" });
+  const email = req.user?.email;
+  console.log("User Email is : ", email)
 
-  const { fullName, email, college, age, year_of_study } = req.body;
+  if (!email)
+    return res.status(400).json({ message: "User email missing" });
 
-  if (!fullName || !email) {
-    return res.status(400).json({ message: "Full name and email required" });
+
+  if (!eventId || !checkEventExists(eventId))
+    return res.status(400).json({ message: "Missing event ID" });
+
+  const { fullName, college, age, year_of_study } = req.body;
+
+  if (!fullName || !college || !age || !year_of_study) {
+    return res.status(400).json({ message: "Invalid Credentials" });
   }
 
   const eventDetails = await getEventDetails(eventId);
   const registrationId = uuidv4();
   const registrationRef = db.collection("registrations").doc(registrationId);
   const userRef = db.collection("users").doc(user_id);
+
+  console.log("User Found is : ", userRef)
 
   await db.runTransaction(async (tx) => {
     tx.set(registrationRef, {
@@ -276,7 +287,32 @@ export const addEvent = asyncHandler(async (req: Request, res: Response) => {
     return res.status(201).json({ message: "Event added", event: data });
 
   } catch (error) {
-      console.error("Error adding event:", error);
-      throw new ExpressError(500,"Error creating Events !")
+    console.error("Error adding event:", error);
+    throw new ExpressError(500, "Error creating Events !")
   }
+});
+
+
+export const getEventByType = asyncHandler(async (req: Request, res: Response) => {
+  const eventType = (req.query.eventType as string | undefined)?.trim();
+
+  if (!eventType) {
+    return res.status(400).json({ error: "Event Type is required" });
+  }
+
+  const snapshot = await db
+    .collection("events")
+    .where("eventType", "==", eventType)
+    .get();
+
+  const events = snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
+
+  if (events.length === 0) {
+    return res.status(404).json({ error: "No events found for the given eventType!" });
+  }
+
+  return res.status(200).json({ success: true, events });
 });

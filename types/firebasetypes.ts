@@ -58,6 +58,7 @@ export interface Event {
   participant_count: number;
   DateTime: Date;
   createdAt: Date;
+  eventType : String;
 }
 
 export interface Team {

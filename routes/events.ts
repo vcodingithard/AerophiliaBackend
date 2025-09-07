@@ -13,9 +13,9 @@ import {
 import { userLogin } from "../middlewares/userLogin.ts";
 import { getAllEvents } from "../controllers/Allevent/getAllEvents.ts";
 import { getEventById } from "../controllers/Allevent/getEventId.ts";
-
+import { getEventByType } from "../controllers/events.ts";
 const router = Router();
-
+router.get("/events",getEventByType);
 router.get("/", getAllEvents);
 router.get("/:id", getEventById);
 
@@ -40,5 +40,7 @@ router.get("/registrations/completed", userLogin, getCompletedRegistrations);
 
 // GET /registrations/incomplete - Fetch incomplete registrations from user's registrations field
 router.get("/registrations/incomplete", userLogin, getIncompleteRegistrations);
+
+
 
 export default router;
