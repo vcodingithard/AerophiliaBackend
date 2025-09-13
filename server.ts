@@ -8,6 +8,7 @@ import eventRoutes from "./routes/events.ts";
 import userRoutes from "./routes/user.ts";
 import requestRouter from "./routes/requests.ts";
 import registrationRouter from "./routes/registrations.ts";
+import teamRoutes from "./routes/teams.ts";
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.use("/api/events", eventRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/requests", requestRouter);
 app.use("/api/registration", registrationRouter);
+app.use("/api/teams", teamRoutes);
 
 app.get("/", (_req, res) => {
   res.send("Hello from TypeScript + Node.js");

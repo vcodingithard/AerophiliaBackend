@@ -16,8 +16,7 @@ export const getTeamById = async (req: Request, res: Response) => {
     }
 
     const teamData = teamDoc.data() as Team;
-    const userIdRaw = req.headers["x-user-id"];
-    const userId = typeof userIdRaw === "string" ? userIdRaw : Array.isArray(userIdRaw) ? userIdRaw[0] : undefined;
+    const userId = req.user?.uid;
 
     // Authorization: only leader or members can see
     if (!userId || (teamData?.leader !== userId && !teamData?.members.includes(userId))) {

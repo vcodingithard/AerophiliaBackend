@@ -13,18 +13,30 @@ requestRouter.get("/", userLogin, async (req: Request, res: Response) => {
     if (!uid || !email) return res.status(401).json({ error: "Unauthorized" });
 
     const [receivedSnap, sentSnap] = await Promise.all([
-      db.collection("requests").where("receiver_email", "==", email).get(),
-      db.collection("requests").where("sender_id", "==", uid).get(),
+      db.collection("TeamRequests").where("to", "==", email).get(),
+      db.collection("TeamRequests").where("from", "==", uid).get(),
     ]);
 
     const received: any[] = [];
     receivedSnap.forEach((doc) => {
-      received.push({ id: doc.id, ...doc.data() });
+      const data = doc.data();
+      received.push({
+        id: data?.requestId || doc.id,
+        from: data?.from,
+        fromName: data?.fromName || 'Unknown', // Include sender name for received requests too
+        ...data
+      });
     });
 
     const sent: any[] = [];
     sentSnap.forEach((doc) => {
-      sent.push({ id: doc.id, ...doc.data() });
+      const data = doc.data();
+      sent.push({
+        id: data?.requestId || doc.id,
+        from: data?.from,
+        fromName: data?.fromName || 'Unknown', // Use stored sender name
+        ...data
+      });
     });
 
     return res.json({ received, sent });
@@ -40,10 +52,14 @@ requestRouter.get("/received", userLogin, async (req: Request, res: Response) =>
     const email = req.user?.email;
     if (!email) return res.status(401).json({ error: "Unauthorized" });
 
-    const receivedSnap = await db.collection("requests").where("receiver_email", "==", email).get();
+    const receivedSnap = await db.collection("TeamRequests").where("to", "==", email).get();
     const received: any[] = [];
     receivedSnap.forEach((doc) => {
-      received.push({ id: doc.id, ...doc.data() });
+      const data = doc.data();
+      received.push({
+        id: data?.requestId || doc.id,
+        ...data
+      });
     });
 
     return res.json({ received });
@@ -59,10 +75,14 @@ requestRouter.get("/sent", userLogin, async (req: Request, res: Response) => {
     const uid = req.user?.uid;
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
 
-    const sentSnap = await db.collection("requests").where("sender_id", "==", uid).get();
+    const sentSnap = await db.collection("TeamRequests").where("from", "==", uid).get();
     const sent: any[] = [];
     sentSnap.forEach((doc) => {
-      sent.push({ id: doc.id, ...doc.data() });
+      const data = doc.data();
+      sent.push({
+        id: data?.requestId || doc.id,
+        ...data
+      });
     });
 
     return res.json({ sent });
@@ -88,7 +108,7 @@ requestRouter.patch("/:id/accept", userLogin, async (req: Request, res: Response
     }
 
     // Get the request document
-    const requestDoc = await db.collection("requests").doc(id).get();
+    const requestDoc = await db.collection("TeamRequests").doc(id).get();
     
     if (!requestDoc.exists) {
       return res.status(404).json({ error: "Request not found" });
@@ -97,7 +117,7 @@ requestRouter.patch("/:id/accept", userLogin, async (req: Request, res: Response
     const requestData = requestDoc.data();
     
     // Verify that this user is the recipient of the request
-    if (requestData?.receiver_email !== userEmail) {
+    if (requestData?.to !== userEmail) {
       return res.status(403).json({ error: "You are not authorized to accept this request" });
     }
 
@@ -126,11 +146,6 @@ requestRouter.patch("/:id/accept", userLogin, async (req: Request, res: Response
     // Check if team is already full
     if (currentMembers.length >= maxSize) {
       return res.status(400).json({ error: "Team is already full" });
-    }
-
-    // Check if user is already a member
-    if (currentMembers.includes(uid)) {
-      return res.status(400).json({ error: "You are already a member of this team" });
     }
 
     // Use a transaction to ensure data consistency
@@ -224,7 +239,7 @@ requestRouter.patch("/:id/reject", userLogin, async (req: Request, res: Response
     }
 
     // Get the request document
-    const requestDoc = await db.collection("requests").doc(id).get();
+    const requestDoc = await db.collection("TeamRequests").doc(id).get();
     
     if (!requestDoc.exists) {
       return res.status(404).json({ error: "Request not found" });
@@ -233,7 +248,7 @@ requestRouter.patch("/:id/reject", userLogin, async (req: Request, res: Response
     const requestData = requestDoc.data();
     
     // Verify that this user is the recipient of the request
-    if (requestData?.receiver_email !== userEmail) {
+    if (requestData?.to !== userEmail) {
       return res.status(403).json({ error: "You are not authorized to reject this request" });
     }
 
