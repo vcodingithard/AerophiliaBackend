@@ -16,7 +16,7 @@ export const updateTeam = async (req: Request, res: Response) => {
     }
 
     const teamData = teamDoc.data();
-    const userId = (req as any).userId;
+    const userId = req.user?.uid;
 
     if (teamData?.leader !== userId) {
       return res.status(403).json({ error: "Only leader can update team" });

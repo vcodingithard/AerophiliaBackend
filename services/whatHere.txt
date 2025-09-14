@@ -1,0 +1,7 @@
+databaseHelpers.ts - Utility functions for database operations, such as validating user/event IDs, fetching documents, and handling common database tasks.
+
+teamManagementService.ts - Handles team creation, validation, and setup operations (e.g., generating team IDs, creating team documents, updating creator events).
+
+teamOperationsService.ts - Manages team operations like leaving teams, disbanding teams, checking payment status, and validating team membership.
+
+teamRequestService.ts - Deals with team requests, including validating responses, accepting/rejecting invitations, and updating request statuses.

@@ -78,6 +78,26 @@ export const verifyPayment = asyncHandler(
       status: "completed",
       payment_id: razorpay_order_id,
     });
+
+    // Add event to user's eventsRegistered array after successful payment
+    const regSnap = await db.collection("registrations").doc(registration_id).get();
+    const regData = regSnap.data();
+    if (regData) {
+      // Handle both individual and team registrations
+      const participantIds: string[] = regData.participants?.length 
+        ? regData.participants 
+        : [regData.registrant_id];
+      
+      // Update eventsRegistered for all participants
+      const updatePromises = participantIds.map(uid => 
+        db.collection("users").doc(uid).update({
+          eventsRegistered: firestore.FieldValue.arrayUnion(event_id),
+          updatedAt: firestore.FieldValue.serverTimestamp()
+        })
+      );
+      
+      await Promise.all(updatePromises);
+    }
     // ------------------------
     // Send payment confirmation email asynchronously
     // ------------------------
