@@ -8,11 +8,12 @@ import eventRoutes from "./routes/events.ts";
 import userRoutes from "./routes/user.ts";
 import requestRouter from "./routes/requests.ts";
 import registrationRouter from "./routes/registrations.ts";
+import teamRoutes from "./routes/teams.ts";
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5173;
 
 app.use(cors());
 app.use(express.json());
@@ -25,6 +26,7 @@ app.use("/api/events", eventRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/requests", requestRouter);
 app.use("/api/registration", registrationRouter);
+app.use("/api/teams", teamRoutes);
 
 app.get("/", (_req, res) => {
   res.send("Hello from TypeScript + Node.js");
@@ -33,3 +35,4 @@ app.get("/", (_req, res) => {
 app.listen(3000, () => {
   console.log(`Server running at port 3000`);
 });
+

@@ -8,18 +8,23 @@ import { sendPaymentConfirmationEmail } from "../utils/sendEmails/paymentConfirm
 
 
 export const initiatePayment = asyncHandler(async (req: Request, res: Response) => {
+  const user_id = req.user?.uid; 
+  console.log(user_id)
   const { amount, currency = "INR", event_id, registration_id } = req.body;
-  const user_id = req.user_id;
+  console.log(req.body)
+   
 
-  if (!amount || !user_id || !event_id || !registration_id) {
+  if (!amount || !event_id || !registration_id) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
   const receipt = `order_${user_id}_${Date.now()}`;
-
+  console.log(receipt)
+  console.log(" ia ma here")
   const order = await createRazorpayOrder(amount, currency, receipt);
+  console.log("order", JSON.stringify(order, null, 2));
 
-  // Save payment record in Firebase
+  console.log("before saving")
   await db.collection("payments").doc(order.id).set({
     payment_id: order.id,
     user_id,
@@ -31,6 +36,8 @@ export const initiatePayment = asyncHandler(async (req: Request, res: Response) 
     status: PaymentStatus.PENDING,
     time: firestore.FieldValue.serverTimestamp(),
   });
+
+  console.log("Response sent ");
 
   res.status(200).json({ success: true, order });
 });
@@ -78,6 +85,26 @@ export const verifyPayment = asyncHandler(
       status: "completed",
       payment_id: razorpay_order_id,
     });
+
+    // Add event to user's eventsRegistered array after successful payment
+    const regSnap = await db.collection("registrations").doc(registration_id).get();
+    const regData = regSnap.data();
+    if (regData) {
+      // Handle both individual and team registrations
+      const participantIds: string[] = regData.participants?.length 
+        ? regData.participants 
+        : [regData.registrant_id];
+      
+      // Update eventsRegistered for all participants
+      const updatePromises = participantIds.map(uid => 
+        db.collection("users").doc(uid).update({
+          eventsRegistered: firestore.FieldValue.arrayUnion(event_id),
+          updatedAt: firestore.FieldValue.serverTimestamp()
+        })
+      );
+      
+      await Promise.all(updatePromises);
+    }
     // ------------------------
     // Send payment confirmation email asynchronously
     // ------------------------

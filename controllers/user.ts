@@ -19,7 +19,7 @@ export const handleInitialUserSignUp = asyncHandler(
 
     if (!userDoc.exists) {
       const userData = { email: userEmail };
-
+      console.log(userData)
       await userRef.set(userData);
 
       return res.status(201).json({

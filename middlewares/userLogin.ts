@@ -1,9 +1,9 @@
 import type { Request, Response, NextFunction } from "express";
-import { auth, db } from "../firebase.ts"; // your firebase admin setup
+import { auth, db } from "../firebase.ts";
 import type { DecodedIdToken } from "firebase-admin/auth";
 import ExpressError from "../utils/expressError.ts";
 
-// Extend Express Request to include `user`
+// Extend Express Request to include `user` and `user_id`
 declare module "express-serve-static-core" {
   interface Request {
     user?: DecodedIdToken;
@@ -11,26 +11,28 @@ declare module "express-serve-static-core" {
   }
 }
 
-export const userLogin = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const userLogin = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const header = req.headers.authorization;
+    const authHeader = req.headers.authorization;
 
-    if (!header || !header.startsWith("Bearer ")) {
+    console.log("AuthHeader : ", authHeader);
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       throw new ExpressError(401, "No token provided. Please log in.");
     }
 
-    const token = header.split(" ")[1];
+    const token = authHeader.split(" ")[1];
+    console.log(token)
     if (!token) {
-      throw new ExpressError(401, "Token missing or invalid. Cannot login.");
+      throw new ExpressError(401, "Token missing or invalid. Cannot log in.");
     }
 
-    // Verify Firebase token
+    console.log("🔍 Verifying Firebase token...");
     const decodedToken: DecodedIdToken = await auth.verifyIdToken(token);
+    console.log(`Token verified for UID: ${decodedToken.uid}`);
+
     req.user = decodedToken;
+    console.log("User id is ",req.user?.uid)
     req.user_id = decodedToken.uid;
 
     // Optional: Check if user exists in Firestore
@@ -39,9 +41,10 @@ export const userLogin = async (
       throw new ExpressError(404, "User profile not found. Please register.");
     }
 
+    console.log("👤 User exists in Firestore. Authentication successful.");
     next();
   } catch (err: unknown) {
-    console.error("Firebase Token verification failed:", err);
+    console.error(" Firebase token verification failed:", err);
 
     if (err instanceof ExpressError) {
       return res.status(err.status).json({ error: err.message });
